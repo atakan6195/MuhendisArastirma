@@ -36,7 +36,7 @@ jobs:
           rm -rf android
           unzip -q MuhendisArastirma_Android_Only.zip
 
-      - name: Configure AndroidX
+      - name: Configure Gradle and JVM
         run: |
           cat > android/gradle.properties <<'EOF'
           android.useAndroidX=true
@@ -44,6 +44,35 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           kotlin.code.style=official
           EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android/app/build.gradle.kts")
+          text = p.read_text()
+
+          if "compileOptions" not in text:
+              marker = "android {"
+              replacement = """android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              """
+              text = text.replace(marker, replacement, 1)
+
+          if "kotlinOptions" not in text:
+              insert = """
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          """
+              idx = text.find("\\n}", text.find("android {"))
+              text = text[:idx] + insert + text[idx:]
+
+          p.write_text(text)
+          print(text)
+          PY
 
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
