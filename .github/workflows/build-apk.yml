@@ -1,90 +1,53 @@
 name: Build Android APK
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'MuhendisArastirma_Android_FINAL.zip'
+      - '.github/workflows/build-apk.yml'
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
-      - name: Accept Android licenses
+      - name: Install Android SDK
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-            "platform-tools" \
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-35" \
-            "build-tools;35.0.0"
+            "build-tools;35.0.0" \
+            "platform-tools"
 
-      - name: Unzip Android project
+      - name: Extract project
         run: |
           rm -rf android
-          unzip -q MuhendisArastirma_Android_Only.zip
+          unzip -q MuhendisArastirma_Android_FINAL.zip
+          test -f android/app/build.gradle.kts
+          test -f android/gradle.properties
+          test -f android/app/src/main/AndroidManifest.xml
 
-      - name: Configure Gradle and JVM
-        run: |
-          cat > android/gradle.properties <<'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          kotlin.code.style=official
-          EOF
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("android/app/build.gradle.kts")
-          text = p.read_text()
-
-          if "compileOptions" not in text:
-              marker = "android {"
-              replacement = """android {
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-              }
-              """
-              text = text.replace(marker, replacement, 1)
-
-          if "kotlinOptions" not in text:
-              insert = """
-              kotlinOptions {
-                  jvmTarget = "17"
-              }
-          """
-              idx = text.find("\\n}", text.find("android {"))
-              text = text[:idx] + insert + text[idx:]
-
-          p.write_text(text)
-          print(text)
-          PY
-
-      - name: Set up Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "8.9"
+          gradle-version: '8.9'
 
-      - name: Build debug APK
+      - name: Build APK
         working-directory: android
-        run: |
-          gradle :app:assembleDebug --stacktrace
+        run: gradle --no-daemon :app:assembleDebug
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: MuhendisArastirma-APK
