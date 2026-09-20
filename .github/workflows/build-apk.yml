@@ -8,34 +8,35 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
       - name: Unzip Android project
         run: |
           rm -rf android
           unzip -q MuhendisArastirma_Android_Only.zip
-          echo "ZIP contents:"
-          ls -la
-          echo "Android folder:"
-          find android -maxdepth 3 -type f | head -100
+          echo "Project structure:"
+          find . -maxdepth 3 -type f | sort
 
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
