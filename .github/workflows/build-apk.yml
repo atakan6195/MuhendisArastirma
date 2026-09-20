@@ -35,8 +35,15 @@ jobs:
         run: |
           rm -rf android
           unzip -q MuhendisArastirma_Android_Only.zip
-          echo "Project structure:"
-          find . -maxdepth 3 -type f | sort
+
+      - name: Configure AndroidX
+        run: |
+          cat > android/gradle.properties <<'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          kotlin.code.style=official
+          EOF
 
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
