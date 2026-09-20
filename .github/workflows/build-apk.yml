@@ -33,7 +33,7 @@ jobs:
       - name: Extract project
         run: |
           rm -rf android
-          unzip -q MuhendisArastirma_Android_FINAL.zip
+          unzip -q MuhendisArastirma_Android_FINAL_V2.zip
           test -f android/app/build.gradle.kts
           test -f android/gradle.properties
           test -f android/app/src/main/AndroidManifest.xml
